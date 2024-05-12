@@ -1,0 +1,45 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table accounts as A {
+  id bigserial [pk]
+  owner varchar [not null]
+  balance bigint [not null]
+  currency varchar [not null]
+  created_at timestamptz [not null, default: `now()`]
+  Indexes {
+    owner
+  } 
+}
+
+Table entries as E {
+  id bigserial [pk]
+  account_id bigint [ref: > A.id]
+  amount bigint [not null, note: 'can be -ve or +ve']
+  created_at timestamptz [not null, default: `now()`]
+  Indexes {
+    account_id
+  }
+}
+
+Table transfers as T {
+  id bigserial [pk]
+  from_account_id bigint [ref: > A.id]
+  to_account_id bigint [ref: > A.id]
+  amount bigint [not null, note: 'must be +ve']
+  created_at timestamptz [not null, default: `now()`]
+  Indexes {
+    from_account_id
+    to_account_id
+    (from_account_id, to_account_id)
+  }
+}
+
+// Not you could use a DB defined enum like below
+// but the application is more flexible.
+//
+// Enum Currency {
+//  USD
+//  EUR
+//  GBP
+// }

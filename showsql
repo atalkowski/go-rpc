@@ -1,0 +1,57 @@
+
+
+dbs=""
+usr="root"
+pwd=""
+cmd=""
+dftdb="MYREACT"
+eng="psql"
+server="mysql"
+
+function setServer() {
+
+  case "$1" in
+  psql) 
+    server="docker exec -i postgres psql"
+    use="\\d"
+    dftdb="root"
+    usql="\\du"
+   ;;
+  *) 
+    server="mysql -u $usr"
+    use="use"
+    dftdb="MYREACT"
+    usql="select Host, User from mysql.user"
+  ;;
+  esac
+}
+ 
+while [ $# != 0 ]; do
+  arg="$1"
+  shift
+  case "$arg" in
+  -psql | -pg* | -postgres) eng="psql";;
+  mysql | -mysql) eng="mysql";;
+  -sql | sql) cmd="sql"; sql="$1"; shift;;
+  -u) usr="$1"; shift;;
+  -p) pwd="$1"; shift;;
+  -db) dbs="$dbs $1"; shift;;
+  -user* | user*) cmd="usql";;
+  *) echo "Not sure about $arg"; exit 1;;
+  esac 
+done
+
+setServer $eng
+
+if [ "$dbs" = "" ]; then
+  dbs="$dftdb"
+fi
+
+case "$cmd" in
+  usql) echo "$usql" | $server;;
+  sql) 
+    for db in $dbs; do
+      echo "$use $db;\n$sql" | $server
+    done
+  ;;
+esac
