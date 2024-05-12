@@ -22,18 +22,18 @@ This should list output options similar to following:
 ## Database 
 ### Postgres
 Setting up postgres on docker with a postgres-alpine image was the way suggested. 
-Installing and connecting are options available in the Makefile (use command make to see).
+Installing and connecting are options available in the Makefile (use command `make` to see).
 
 ### dbdiagram.io for schema easy set up
-The dbdiagram.io site allows us to define our schema. See Auxillary notes for URL.
-The outputs are install sql scripts - see the db diractory - these were exported from the web site which can export 3 DB flavors - we will be using the postgres-accounts.sql export.
+The dbdiagram.io site allows us to define our schema. See the Auxillary notes below for URL.
+The outputs of that process are install sql scripts - see the db diractory - these were exported from the web site which can export 3 DB flavors - we will be using the postgres-accounts.sql export.
 
 ### DB Client installation
 Go to https://tableplus.com and download the Mac version (or whatever) of Tableplus.
-However - please note that Tableplus free version is now very restrictive and costs $90.
+However - please note that Tableplus free version is now very restrictive and costs $90 (or more).
 Therefore, I've added a showsql command which can run postgres queries from the command line.
 
 ## Auxilliary Notes
-1. See https://dbdiagram.io/d/ for the database setup tool which course advises to use.
-2. See https://dbdiagram.io/d/Simple-Bank-663bf7a79e85a46d555ba356 for my Simple Bak  
-3. See https://hub.docker.com/postgres .. for nots on configuring the postgres container.
+1. See https://dbdiagram.io/d/ for the database setup tool which course advises to use - this is quite neat.
+2. See https://dbdiagram.io/d/Simple-Bank-663bf7a79e85a46d555ba356 for my Simple Bank setup (or NOT).   
+3. See https://hub.docker.com/postgres .. for notes on configuring the postgres container.
