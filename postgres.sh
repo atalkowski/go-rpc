@@ -1,5 +1,10 @@
 fake=""
 
+function quickLook() {
+  docker ps -a --format '{{json .}}' | jq '.ID + "|" + .Image + "|" + .Names + "|" + .Status' | sed 's/^"//
+s/"$//' | awk -F'|' '{ print(sprintf("%16.16s | %25.25s | %20.20s | %25.25s", $1, $2, $3, $4)); }' 
+}
+
 fullstatus=`docker container ls -a | grep postgres`
 status=`echo "$fullstatus" | awk 'BEGIN { status="stopped"; }
         /postgres/ { status="started"; }
@@ -7,9 +12,9 @@ status=`echo "$fullstatus" | awk 'BEGIN { status="stopped"; }
         END { print status; }'`
 container=`echo "$fullstatus" | awk '{ print $1; }'`
 
-echo "Full status ... $fullstatus"
-echo "Run status  ... $status"
-echo "Container   ... $container"
+quickLook
+echo "Postgres Run status  ... $status"
+echo "Postgres Container   ... $container"
 
 function stoppg() {
   echo "Stopping postgres..."
@@ -54,7 +59,4 @@ while [ $# != 0 ]; do
   esac
 done
 
-echo "Status was : $fullstatus"
-echo "Status is :"
-docker ps -a | egrep '(postgres|CONTAINER)'
 
