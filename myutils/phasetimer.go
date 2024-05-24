@@ -11,11 +11,31 @@ import (
 const EVENT_CHAIN_SIZE int = 25
 const MIN_EVENT_TIME = 1 // Any event with less than 1μs time elapsed or blank name is not reported.
 
+/*
+* Overview:
+	PhaseTimer has many GroupTimer objects - one per group id (an int)
+
+	GroupTimer is used only to allow separate threads to log events without screwing up
+	 simultaneous events from other threads. Otherwise time durations would not be reliable.
+	 Unfortunately I haven't found a way to dynamically identify the thread being used.
+	 (Go thread does not have a thread ID like the Java threadId).
+
+	GroupTimer has many EventHistory objects - in a map - indexed by the event name
+	GroupTimer keeps a fixed size array eventChain [EVENT_CHAIN_SIZE] of TimerEvents
+	When eventChain is full (or ToString method called) we compact eventChain into EventHistory objects
+	If an event (name) is logged multiple times, each will be pushed separately into eventChain.
+	But the compaction will aggregate the event durations into the EventHistory.
+*/
+
 type TimerEvent struct {
 	name  string
 	clock int64
 }
 
+// TODO : I believe this is not optimal - because we are allocating a TimerEvent in the heap - and then
+// returning the pointer to this TimerEvent and then storing a copy in the eventChain.
+// I guess we can bypass the heap allocation... by copy a stack instance directly into the eventChain
+// (Which was the whole point of using a fixed sized array).
 func NewTimerEvent(name string) *TimerEvent {
 	var now = time.Now().UTC()
 	event := &TimerEvent{
@@ -27,7 +47,8 @@ func NewTimerEvent(name string) *TimerEvent {
 
 /*
 * The Event History "class" to aggregate the events logged to the GroupTimer.
-* Aggregation occurs when we have filled the EventChain
+* It only stores the total time for a specific event (i.e. EventHistory to NameOfEvent+Grp is one to one).
+* The aggregation occurs when the EventChain is full - or when ToString() is invoked for the GroupTimer.
  */
 type EventHistory struct {
 	name  string
@@ -62,9 +83,14 @@ func (h *EventHistory) addEventDuration(duration int64) {
 * The GroupTimer "class" supporting a collection of timed events (event has a name and start time)
 * By logging successive events we can calculate durations.
 *
-* GroupTimer aggregates the time duration for each named events
-* All events finsih time is based on the subsequent event.
-* A blank name event is used to act as "just an end marker" for the previous event.
+* GroupTimer aggregates the time duration for each named event separately... and we use a sort (by clock)
+* at the end to ensure chronological order is maintained. (i.e each EventHistory has a firstClock time).
+* All events have an end time which is based on the subsequent event.
+* A blank name event is used to act as an "end marker" for the previous event.
+* The blank (end) marker can be inserted using a call to phaseTimer Done, DoneN or AllDone methods.
+* - Done() is used to log end marker to group ID 0  (you can also used DoneN(0) to do this)
+* - Done(3) is used to log end marger to group ID 3.
+* - AllDone() would mark all GroupTimers with a blank end entry.
  */
 type GroupTimer struct {
 	mutex      *sync.Mutex
