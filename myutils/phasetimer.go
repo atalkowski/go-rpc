@@ -18,7 +18,7 @@ func NewTimerEvent(name string) *TimerEvent {
 	var now = time.Now().UTC()
 	event := &TimerEvent{
 		name:  name,
-		clock: now.UnixNano(),
+		clock: now.UnixMicro(),
 	}
 	return event
 }
@@ -38,6 +38,8 @@ func NewEventHistory(name string, clock int64) *EventHistory {
 	result := &EventHistory{
 		name:  name,
 		start: clock,
+		total: 0,
+		hits:  0,
 	}
 	return result
 }
@@ -49,7 +51,7 @@ func (eh *EventHistory) eventHistoryToString() string {
 	return fmt.Sprintf("%v:%v", eh.name, eh.total)
 }
 
-func (h EventHistory) addEventDuration(duration int64) {
+func (h *EventHistory) addEventDuration(duration int64) {
 	h.hits++
 	h.total += duration
 }
@@ -69,17 +71,22 @@ type GroupTimer struct {
 	lastClock  int64
 	eventChain []TimerEvent
 	eventCount int
-	historyMap map[string]EventHistory
+	historyMap map[string]*EventHistory
 }
 
 func NewGroupTimer(grp int) *GroupTimer {
-	var gt = &GroupTimer{group: grp,
+	var gt = &GroupTimer{
+		mutex:      &sync.Mutex{},
+		group:      grp,
+		firstClock: 0,
+		lastClock:  0,
 		eventChain: make([]TimerEvent, EVENT_CHAIN_SIZE),
-		historyMap: make(map[string]EventHistory),
+		eventCount: 0,
+		historyMap: make(map[string]*EventHistory),
 	}
-	for i := 0; i < EVENT_CHAIN_SIZE; i++ {
-		gt.eventChain[i] = TimerEvent{} // seed with empty timer events (is this really needed?)
-	}
+	//	for i := 0; i < EVENT_CHAIN_SIZE; i++ {
+	//		gt.eventChain[i] = TimerEvent{} // seed with empty timer events (is this really needed?)
+	//	}
 	return gt
 }
 
@@ -112,7 +119,7 @@ func (gt *GroupTimer) compact() *GroupTimer {
 		duration := nextEvent.clock - currentEvent.clock
 		history, found := gt.historyMap[currentEvent.name]
 		if !found {
-			history = *NewEventHistory(currentEvent.name, currentEvent.clock)
+			history = NewEventHistory(currentEvent.name, currentEvent.clock)
 			gt.historyMap[currentEvent.name] = history
 		}
 		history.addEventDuration(duration)
@@ -161,59 +168,66 @@ This puts the onus on the Go caller to use groups as a way to distinquish betwee
 Of course using separate timers would also work... but is less clear when it comes to looking at the timer outputs.
 */
 type PhaseTimer struct {
-	phaseMutex  sync.Mutex
-	groupTimers map[int]GroupTimer
+	phaseMutex  *sync.Mutex
+	groupTimers map[int]*GroupTimer
 }
 
 func NewPhaseTimer() *PhaseTimer {
 	var pt = &PhaseTimer{
-		groupTimers: make(map[int]GroupTimer),
+		phaseMutex:  &sync.Mutex{},
+		groupTimers: make(map[int]*GroupTimer),
 	}
 	return pt
-}
-
-/** Simple log all items are logged into group 0
- */
-func (pt *PhaseTimer) log(name string) *PhaseTimer {
-	return pt.grplog(0, name)
 }
 
 /* Internal function
  */
-func getGroupTimer(pt *PhaseTimer, groupId int) *GroupTimer {
+func (pt *PhaseTimer) getOrAddGroupTimer(groupId int) *GroupTimer {
 	pt.phaseMutex.Lock()
 	defer pt.phaseMutex.Unlock()
 	groupTimer, found := pt.groupTimers[groupId]
 	if !found {
-		groupTimer = *NewGroupTimer(groupId)
+		groupTimer = NewGroupTimer(groupId)
 		pt.groupTimers[groupId] = groupTimer
 	}
-	return &groupTimer
+	return groupTimer
 }
 
-/** Group log call - allowing for multiple separate timers based on the group id
+/** Simple log all items are logged into group 0
  */
-func (pt *PhaseTimer) grplog(groupId int, name string) *PhaseTimer {
-	groupTimer := getGroupTimer(pt, groupId)
+func (pt *PhaseTimer) LogN(groupId int, name string) *PhaseTimer {
+	groupTimer := pt.getOrAddGroupTimer(groupId)
 	groupTimer.log(name)
 	return pt
 }
 
-func (pt *PhaseTimer) toString() string {
+func (pt *PhaseTimer) DoneN(groupId int) *PhaseTimer {
+	return pt.LogN(groupId, "")
+}
+
+// Convenience functions for simple (non group N) logging of events
+func (pt *PhaseTimer) Log(name string) *PhaseTimer {
+	return pt.LogN(0, name)
+}
+
+func (pt *PhaseTimer) Done() *PhaseTimer {
+	return pt.DoneN(0)
+}
+
+func (pt *PhaseTimer) AllDone() *PhaseTimer {
+	for _, timer := range pt.groupTimers {
+		timer.log("")
+	}
+	return pt
+}
+
+func (pt *PhaseTimer) ToString() string {
 	res := "Timings:"
-	count := len(pt.groupTimers)
-	if count == 0 {
+	if len(pt.groupTimers) == 0 {
 		return res + "None"
 	}
-	for key, _ := range pt.groupTimers {
-		timer := pt.groupTimers[key]
-		data := timer.groupTimerToString()
-		res = fmt.Sprintf("%v {%v}", res, data)
+	for _, timer := range pt.groupTimers {
+		res = fmt.Sprintf("%v {%v}", res, timer.groupTimerToString())
 	}
-	// for index := 0; index < count; index++ {
-	// 	timer := pt.groupTimers[index]
-	// 	data := timer.groupTimerToString()
-	// 	res = fmt.Sprintf("%v {%v}", res, data)
-	// }
 	return res
 }
