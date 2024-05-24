@@ -1,7 +1,9 @@
 package myutils
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 )
@@ -147,20 +149,6 @@ func (gt *GroupTimer) groupTimerToString() string {
 	return res
 }
 
-func grpTimerToString(gt *GroupTimer) string {
-	gt.mutex.Lock()
-	defer gt.mutex.Unlock()
-	var res = fmt.Sprintf("G%v %vμs", gt.group, gt.lastClock-gt.firstClock)
-	gt.compact()
-	for eventName, value := range gt.historyMap {
-		if eventName == "" || value.total < MIN_EVENT_TIME {
-			continue
-		}
-		res = fmt.Sprintf("%v {%v}", res, value.eventHistoryToString())
-	}
-	return res
-}
-
 /*
 **** PhaseTimer - the timer uses groups to separate out timing of different event streams. For example, during
 any thread processing where threads can share the same timer. Unlike Java - Go has no thread Id that can be identified.
@@ -221,13 +209,31 @@ func (pt *PhaseTimer) AllDone() *PhaseTimer {
 	return pt
 }
 
+// Comparator for GroupTimers:
+func cmpTimer(a, b *GroupTimer) int {
+	return cmp.Compare(a.firstClock, b.firstClock)
+}
+
+func (pt *PhaseTimer) getSortedGroupTimers() []*GroupTimer {
+	timerArr := make([]*GroupTimer, len(pt.groupTimers))
+	count := 0
+	for _, timer := range pt.groupTimers {
+		timerArr[count] = timer
+		count++
+	}
+	slices.SortFunc(timerArr, cmpTimer)
+	return timerArr
+}
+
 func (pt *PhaseTimer) ToString() string {
 	res := "Timings:"
 	if len(pt.groupTimers) == 0 {
 		return res + "None"
 	}
-	for _, timer := range pt.groupTimers {
-		res = fmt.Sprintf("%v {%v}", res, timer.groupTimerToString())
+	timerArr := pt.getSortedGroupTimers()
+	for _, timer := range timerArr {
+		res = fmt.Sprintf("%v [%v]", res, timer.groupTimerToString())
 	}
+
 	return res
 }
