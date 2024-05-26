@@ -1,0 +1,30 @@
+# version: "2"
+# sql:
+#   - engine: "postgresql"
+#     queries: "./db/query/"
+#     schema: "./db/migration/"
+#     path: "./db/sqlc"
+#     gen:
+#       go:
+#         package: "db"
+#         out: "./db/sqlc"
+#         sql_package: "pgx/v5"
+#         emit_json_tags: true
+#         emit_prepared_queries: true
+#         emit_interface: false
+#         emit_exact_table_names: false
+
+# His version
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "db/query"
+    schema: "db/migration"
+    gen:
+      go:
+        package: "db"
+        out: "db/sqlc"
+        sql_package: "database/sql"
+        emit_json_tags: true
+        emit_interface: true
+        emit_empty_slices: true        

@@ -17,12 +17,13 @@ start-postgres:	# Start the postgres DB container.
 stop-postgres:	# Stop the postgres DB container.
 	postgres.sh stop
 
-db-up:		# Initialise simple_bank db in postgres container 
-	docker exec -i postgres createdb --username=root --owner=root simple_bank
+migrateup:		# Initialise simple_bank db in postgres container 
 	migrate -path  db/migration -database "postgresql://root:mysecret@localhost:5432/simple_bank?sslmode=disable" -verbose up 
+	# docker exec -i postgres createdb --username=root --owner=root simple_bank
 
-db-down:	# Drop the simple_bank db that was set up above.
-	docker exec -i postgres dropdb simple_bank
+migratedown:	# Drop the simple_bank db that was set up above.
+	migrate -path  db/migration -database "postgresql://root:mysecret@localhost:5432/simple_bank?sslmode=disable" -verbose down 
+	# docker exec -i postgres dropdb simple_bank
 
 list-schema:	# Display the schema for postgres (db/postgress-accounts.sql) and schema image.
 	@cat db/postgres-accounts.sql
@@ -49,3 +50,29 @@ d4:		# Re-initialize the migration scripts used by golang migrate feature in thi
 	migrate create -ext sql -dir db/migration -seq init_schema
 	cat db/postgres-accounts.sql > db/migration/000001_init_schema.up.sql
 	cat db/postgres-drop.sql     > db/migration/000001_init_schema.down.sql
+
+d5:		# Install the sqlc code generator 
+	brew install kyleconroy/sqlc/sqlc
+
+d5b:		# Install the docker version of the sqlc code generator
+	docker pull kjconroy/sqlc
+	@echo "To run the docker version:"
+	@echo "docker run --rm -v $(pwd):/src -w /src kjconroy/sqlc generate"	
+
+
+sqlc:		# Generate sqlc CRUD code using sqlc.yaml
+	sqlc generate
+
+#q-accounts:	# Init the query/accounts.sql needed the sqlc generation of the accounts CRUD Golang code
+#	initc.sh Account Accounts -table accounts -fields 'owner, balance, currency' -values '$1, $2, $3' \
+# -update 'balance=$2' # -output db/query/account.sql
+
+# The following 2 bootstraps would be an approximation only .. so they are ignored and not correct
+# It shows that the sqlc is pretty good at bootstrapping but attempt to autogenerate the 
+#q-entries:	# Init the query/entries.sql needed for sqlc generation of the entries CRUD Golang code 
+#	initc.sh Entry Entries -table entries -fields 'account_id, amount' -values '$1, $2' # -update 'account_id=$2, amount=$3' -output db/query/entry.sql
+
+#q-transfers:	# Init the query/transfers.sql needed for sqlc generation of the transfers CRUD in Golang code 
+#	initc.sh Transfer Transfers -table transfers -fields 'from_account_id, to_account_id, amount' -values '$$1, $$2, $$3' 
+#	  -update 'from_account_id=$$2, to_account_id=$$3, amount=$$4' # -output db/query/transfer.sql
+
