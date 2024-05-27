@@ -7,7 +7,6 @@ dft:		# List the targets in this makefile by invoking make
 run:	# Build the main.go and run it
 	go run main.go
 
-
 status-postgres:	# Show postgres status but do not change anything.
 	postgres.sh
 
@@ -54,14 +53,26 @@ d4:		# Re-initialize the migration scripts used by golang migrate feature in thi
 d5:		# Install the sqlc code generator 
 	brew install kyleconroy/sqlc/sqlc
 
+
+d6:		# Install Postgres go library the at lib/pq
+	go get github.com/lib/pq
+
+d7:		# Install stretchr/testify
+	go get github.com/stretchr/testify
+	go get github.com/stretchr/testify/require
+
+
+
 d5b:		# Install the docker version of the sqlc code generator
 	docker pull kjconroy/sqlc
 	@echo "To run the docker version:"
 	@echo "docker run --rm -v $(pwd):/src -w /src kjconroy/sqlc generate"	
 
-
 sqlc:		# Generate sqlc CRUD code using sqlc.yaml
 	sqlc generate
+
+testsqlc:	# Run the tests in the sqlc subdirectory 
+	go test -timeout 30s ./db/sqlc -run ^TestCreateAccount$$
 
 #q-accounts:	# Init the query/accounts.sql needed the sqlc generation of the accounts CRUD Golang code
 #	initc.sh Account Accounts -table accounts -fields 'owner, balance, currency' -values '$1, $2, $3' \

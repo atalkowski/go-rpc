@@ -1,20 +1,21 @@
 
-
 dbs=""
 usr="root"
+use=""
 pwd=""
 cmd=""
-dftdb="MYREACT"
-eng="psql"
-server="mysql"
+dftdb=""
+eng="mysql"
+server=""
+verbose="0"
 
 function setServer() {
-
   case "$1" in
   psql) 
     server="docker exec -i postgres psql"
-    use="\\d"
-    dftdb="root"
+    use=""
+    pwd="mysecret"
+    dftdb="simple_bank"
     usql="\\du"
    ;;
   *) 
@@ -25,14 +26,35 @@ function setServer() {
   ;;
   esac
 }
- 
+
+function loginfo() {
+  if [ "$verbose" = "1" ]; then
+    echo "$*"
+  fi
+}
+
+function putinfo() {
+  loginfo "
+engine .... $eng
+usr ....... $usr
+pwd ....... $pwd
+dftdb ..... $dftdb
+usql ...... $usql
+server .... $server
+dbs ....... $dbs
+sql ....... $sql
+cmd ....... $cmd
+"
+}
+
 while [ $# != 0 ]; do
   arg="$1"
   shift
   case "$arg" in
-  -psql | -pg* | -postgres) eng="psql";;
+  psql | -psql | -pg* | -postgres) eng="psql";;
   mysql | -mysql) eng="mysql";;
   -sql | sql) cmd="sql"; sql="$1"; shift;;
+  -v) verbose="1";;
   -u) usr="$1"; shift;;
   -p) pwd="$1"; shift;;
   -db) dbs="$dbs $1"; shift;;
@@ -47,11 +69,31 @@ if [ "$dbs" = "" ]; then
   dbs="$dftdb"
 fi
 
+putinfo
+
+function dodbsql() {
+  if [ "$1" = "" ]; then 
+    style="postgres"
+  else
+    style="$use"
+  fi 
+  case "$style" in
+    mysql) # Mysql
+      loginfo "use $1;\n$2 | $server"
+      echo "use $1;\n$2" | $server
+    ;;
+    *) # Postgres style:
+      loginfo "$2 | $server $1"
+      echo "$2" | $server $1
+    ;; 
+  esac
+}
+
 case "$cmd" in
-  usql) echo "$usql" | $server;;
+  usql) dodbsql "" "$usql";;
   sql) 
-    for db in $dbs; do
-      echo "$use $db;\n$sql" | $server
-    done
+     for db in $dbs; do
+        dodbsql "$db" "$sql"
+     done
   ;;
 esac

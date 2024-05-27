@@ -5,7 +5,11 @@ import (
 	"log"
 	"os"
 	"testing"
+
+	_ "github.com/lib/pq"
 )
+
+// Because lib/pq calls no functions herein - the save will remove it; use _ to prevent this.
 
 const (
 	dbDriver = "postgres"
