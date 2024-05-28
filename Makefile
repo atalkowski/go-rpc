@@ -10,25 +10,35 @@ run:	# Build the main.go and run it
 test:		# Test all unit tests in the project using verbose and coverage mode.
 	go test -v -cover ./...
 
-status-postgres:	# Show postgres status but do not change anything.
+sqlc:		# Generate sqlc CRUD code using sqlc.yaml
+	sqlc generate
+
+pgstuff:# Below are the postgres start stoop options
+	@echo See the status-pg, start-pg, stop-pg targets and the postgres.sh script.
+
+docker:	# Launch the docker desktop application
+	open -a Docker
+	@echo Please wait while Docker Desktop loads ...
+
+status-pg:	# Show postgres status but do not change anything.
 	postgres.sh
 
-start-postgres:	# Start the postgres DB container.
+start-pg:	# Start the postgres DB container.
 	postgres.sh start
 
-stop-postgres:	# Stop the postgres DB container.
+stop-pg:	# Stop the postgres DB container.
 	postgres.sh stop
 
 postgres:	# Start the postgres database version postgres:16.2-alpne3.19.
 	docker run --name postgres -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=mysecret -d postgres:16.2-alpine3.19 
 
-createdb: # Create the simple_bank database in postgres.
+createdb:	# Create the simple_bank database in postgres.
 	docker exec -it postgres createdb --username=root --owner=root simple_bank
 
-dropdb:	#Drop the simple_bank database from postgres.
+dropdb:		# Drop the simple_bank database from postgres.
 	docker exec -it postgres dropdb simple_bank
 
-migrateup:		# Initialise simple_bank db in postgres container 
+migrateup:	# Initialise simple_bank db in postgres container 
 	migrate -path  db/migration -database "postgresql://root:mysecret@localhost:5432/simple_bank?sslmode=disable" -verbose up 
 	# docker exec -i postgres createdb --username=root --owner=root simple_bank
 
@@ -40,11 +50,12 @@ list-schema:	# Display the schema for postgres (db/postgress-accounts.sql) and s
 	@cat db/postgres-accounts.sql
 	@open images/schema.png
 
-connect:	# Connect to postgres in the docker container.
+connect:	# Connect to the postgres if it is running.
 	@echo Connecting to docker postgres ... use backslash q to quit when done...
 	docker exec -it postgres psql
 
-downloads: d1 d2 d3 # The following are the list of installs and downloads.
+downloads: # The following are the list of installs and downloads.
+	@echo These are the d1 d2 d3.... d7 etc
 
 d1:		# Pull the postgres image from docker.
 	./checkit.sh "docker pull postgres:16.2-alpine3.19" "Pull docker image for postgres"
@@ -72,19 +83,12 @@ d7:		# Install stretchr/testify
 	go get github.com/stretchr/testify
 	go get github.com/stretchr/testify/require
 
-
-
-
 d5b:		# Install the docker version of the sqlc code generator
 	docker pull kjconroy/sqlc
 	@echo "To run the docker version:"
 	@echo "docker run --rm -v $(pwd):/src -w /src kjconroy/sqlc generate"	
 
-sqlc:		# Generate sqlc CRUD code using sqlc.yaml
-	sqlc generate
 
-testsqlc:	# Run the tests in the sqlc subdirectory 
-	go test -timeout 30s ./db/sqlc -run ^TestCreateAccount$$
 
 #q-accounts:	# Init the query/accounts.sql needed the sqlc generation of the accounts CRUD Golang code
 #	initc.sh Account Accounts -table accounts -fields 'owner, balance, currency' -values '$1, $2, $3' \
