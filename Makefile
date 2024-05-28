@@ -7,6 +7,9 @@ dft:		# List the targets in this makefile by invoking make
 run:	# Build the main.go and run it
 	go run main.go
 
+test:		# Test all unit tests in the project using verbose and coverage mode.
+	go test -v -cover ./...
+
 status-postgres:	# Show postgres status but do not change anything.
 	postgres.sh
 
@@ -15,6 +18,15 @@ start-postgres:	# Start the postgres DB container.
 
 stop-postgres:	# Stop the postgres DB container.
 	postgres.sh stop
+
+postgres:	# Start the postgres database version postgres:16.2-alpne3.19.
+	docker run --name postgres -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=mysecret -d postgres:16.2-alpine3.19 
+
+createdb: # Create the simple_bank database in postgres.
+	docker exec -it postgres createdb --username=root --owner=root simple_bank
+
+dropdb:	#Drop the simple_bank database from postgres.
+	docker exec -it postgres dropdb simple_bank
 
 migrateup:		# Initialise simple_bank db in postgres container 
 	migrate -path  db/migration -database "postgresql://root:mysecret@localhost:5432/simple_bank?sslmode=disable" -verbose up 
@@ -53,13 +65,13 @@ d4:		# Re-initialize the migration scripts used by golang migrate feature in thi
 d5:		# Install the sqlc code generator 
 	brew install kyleconroy/sqlc/sqlc
 
-
 d6:		# Install Postgres go library the at lib/pq
 	go get github.com/lib/pq
 
 d7:		# Install stretchr/testify
 	go get github.com/stretchr/testify
 	go get github.com/stretchr/testify/require
+
 
 
 
