@@ -53,6 +53,8 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry,omitempty"`     // Record of money comint in
 }
 
+// var txKey = struct{}{} // Used with ctx to add a vble to the context for debugging 
+
 // Transfer performs all necessary updates to execute a money transfer between 2 accounts.
 // It creates a transfer record, adds account entries and updates the accont balances for each account
 // Within a single transcation
@@ -62,6 +64,7 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 	// Note use of in line function here:-
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
+		// txName := ctx.Value(txKey)
 		result.Transfer, err = q.CreateTransfer(ctx, CreateTransferParams{
 			FromAccountID: arg.FromAccountID,
 			ToAccountID:   arg.ToAccountID,
@@ -71,6 +74,7 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 			return err
 		}
 
+		// Update the FromEntry
 		result.FromEntry, err = q.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.FromAccountID,
 			Amount:    -arg.Amount,
@@ -79,6 +83,7 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 			return err
 		}
 
+		// Update the ToEntry
 		result.ToEntry, err = q.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.ToAccountID,
 			Amount:    arg.Amount,
@@ -87,10 +92,27 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 			return err
 		}
 
-		// TODO: update accounts' balances ... but concern over locking... so we will come back to this
-		// result.FromAccount, err = q.UpdateAccount(ctx, )
-		return nil
+		// Adjust the FromAccount balance (note the use of SELECT ... FOR UPDATE in this call)
+		result.FromAccount, err = txnAdjustAccountBalance(ctx, q, arg.FromAccountID, -arg.Amount)
+		if err != nil {
+			return err
+		}
+
+		// Adjust the ToAccount balance (note the use of SELECT ... FOR UPDATE in this call)
+		result.ToAccount, err = txnAdjustAccountBalance(ctx, q, arg.ToAccountID, arg.Amount)
+		return err
 	})
 
 	return result, err
+}
+
+func txnAdjustAccountBalance(ctx context.Context, q *Queries, accountID int64, amount int64) (Account, error) {
+	result, err := q.GetAccountForUpdate(ctx, accountID)
+	if err != nil {
+		return result, err
+	}
+	return q.UpdateAccount(ctx, UpdateAccountParams{
+		ID:      accountID,
+		Balance: result.Balance + amount,
+	})
 }
