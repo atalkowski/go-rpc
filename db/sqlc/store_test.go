@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -21,8 +22,8 @@ func TestTransferTx(t *testing.T) {
 	store := NewStore(testDB)
 	account1 := CreateRandomAccount(t)
 	account2 := CreateRandomAccount(t)
-	//fmt.Printf(">> before: from=(%v, %v cents) to=(%v, %v cents)\n", account1.ID, account1.Balance,
-	//	account2.ID, account2.Balance)
+	fmt.Printf(">> before: from=(%v, %v cents) to=(%v, %v cents)\n", account1.ID, account1.Balance,
+		account2.ID, account2.Balance)
 
 	n := 4
 	amount := int64(10)
@@ -95,7 +96,68 @@ func TestTransferTx(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, account2.Balance+int64(n)*amount, updatedAccount2.Balance)
 
-	//fmt.Printf(">> after: from=(%v, %v cents) to=(%v, %v cents)\n", updatedAccount1.ID, updatedAccount1.Balance,
-	//	updatedAccount2.ID, updatedAccount2.Balance)
+	fmt.Printf(">> after: from=(%v, %v cents) to=(%v, %v cents)\n", updatedAccount1.ID, updatedAccount1.Balance,
+		updatedAccount2.ID, updatedAccount2.Balance)
+}
 
+/*
+The following test will expose the deadlock error like this:
+>> before: from=(392, 789 cents) to=(393, 188 cents)
+--- FAIL: TestTransferDeadlockTx (1.05s)
+
+	/Users/andy/wspaces/go/go-rpc/db/sqlc/store_test.go:136:
+	    	Error Trace:	/Users/andy/wspaces/go/go-rpc/db/sqlc/store_test.go:136
+	    	Error:      	Received unexpected error:
+	    	            	pq: deadlock detected
+	    	Test:       	TestTransferDeadlockTx
+
+FAIL
+FAIL	atalkowski/go-rpc/db/sqlc	1.439s
+FAIL
+TODO: fix this as discussed in the store.go
+*/
+func TestTransferDeadlockTx(t *testing.T) {
+	store := NewStore(testDB)
+	account1 := CreateRandomAccount(t)
+	account2 := CreateRandomAccount(t)
+	fmt.Printf(">> before: from=(%v, %v cents) to=(%v, %v cents)\n", account1.ID, account1.Balance,
+		account2.ID, account2.Balance)
+
+	n := 10
+	amount := int64(10)
+
+	errs := make(chan error)
+
+	// run n concurrent transfer transaction
+	for i := 0; i < n; i++ {
+		accountID1 := account1.ID
+		accountID2 := account2.ID
+		if i%2 == 1 {
+			accountID1 = account2.ID
+			accountID2 = account1.ID
+		}
+		go func() {
+			_, err := store.TransferTx(context.Background(), TransferTxParams{
+				FromAccountID: accountID1,
+				ToAccountID:   accountID2,
+				Amount:        amount,
+			})
+
+			errs <- err
+		}()
+	}
+
+	for i := 0; i < n; i++ {
+		err := <-errs
+		require.NoError(t, err)
+	}
+	updatedAccount1, err := testQueries.GetAccount(context.Background(), account1.ID)
+	require.NoError(t, err)
+	updatedAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
+	require.NoError(t, err)
+	require.Equal(t, account1.Balance, updatedAccount1.Balance)
+	require.Equal(t, account2.Balance, updatedAccount2.Balance)
+
+	fmt.Printf(">> after: from=(%v, %v cents) to=(%v, %v cents)\n", updatedAccount1.ID, updatedAccount1.Balance,
+		updatedAccount2.ID, updatedAccount2.Balance)
 }
