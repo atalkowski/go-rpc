@@ -92,24 +92,30 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 			return err
 		}
 
-		// Adjust the FromAccount balance (note the use of SELECT ... FOR UPDATE in this call)
-		result.FromAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
-			ID:     arg.FromAccountID,
-			Amount: -arg.Amount,
-		})
-		if err != nil {
-			return err
+		if arg.FromAccountID < arg.ToAccountID {
+			result.FromAccount, result.ToAccount, err = txnAvoidDeadlock(ctx, q, arg.FromAccountID, arg.ToAccountID, arg.Amount)
+		} else {
+			result.ToAccount, result.FromAccount, err = txnAvoidDeadlock(ctx, q, arg.ToAccountID, arg.FromAccountID, -arg.Amount)
 		}
-
-		// Adjust the ToAccount balance (note the use of SELECT ... FOR UPDATE in this call)
-		result.ToAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
-			ID:     arg.ToAccountID,
-			Amount: arg.Amount,
-		})
 		return err
 	})
 
 	return result, err
+}
+
+func txnAvoidDeadlock(ctx context.Context, q *Queries, id1 int64, id2 int64, amount int64) (up1 Account, up2 Account, err error) {
+	up1, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+		ID:     id1,
+		Amount: -amount,
+	})
+	if err != nil {
+		return
+	}
+	up2, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+		ID:     id2,
+		Amount: amount,
+	})
+	return
 }
 
 /* But the story of deadlock is not over; the final use case is when money is being transferred
