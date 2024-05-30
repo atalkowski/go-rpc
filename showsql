@@ -8,6 +8,24 @@ dftdb=""
 eng="mysql"
 server=""
 verbose="0"
+mlocksql="SELECT * FROM performance_schema.metadata_locks 
+    WHERE OBJECT_TYPE='USER LEVEL LOCK'\G"
+plocksql="
+SELECT a.datname, 
+      a.application_name,
+      l.relation::regclass,
+      l.transactionid,
+      l.mode,
+      l.locktype,
+      l.GRANTED,
+      a.usename,
+      a.query,
+      a.pid
+FROM pg_stat_activity a
+JOIN pg_locks l ON l.pid = a.pid
+-- WHERE NOT (l.relation::regclass::text LIKE 'pg_%')
+ORDER BY a.query_start;"
+locksql="$mlocksql"
 
 function setServer() {
   case "$1" in
@@ -17,12 +35,14 @@ function setServer() {
     pwd="mysecret"
     dftdb="simple_bank"
     usql="\\du"
+    locksql="$plocksql"
    ;;
   *) 
     server="mysql -u $usr"
     use="use"
     dftdb="MYREACT"
     usql="select Host, User from mysql.user"
+    locksql="$mlocksql"
   ;;
   esac
 }
@@ -47,6 +67,7 @@ cmd ....... $cmd
 "
 }
 
+
 while [ $# != 0 ]; do
   arg="$1"
   shift
@@ -54,6 +75,7 @@ while [ $# != 0 ]; do
   psql | -psql | -pg* | -postgres) eng="psql";;
   mysql | -mysql) eng="mysql";;
   -sql | sql) cmd="sql"; sql="$1"; shift;;
+  -lock* | lock*) cmd="locks";;
   -v) verbose="1";;
   -u) usr="$1"; shift;;
   -p) pwd="$1"; shift;;
@@ -72,18 +94,18 @@ fi
 putinfo
 
 function dodbsql() {
-  if [ "$1" = "" ]; then 
-    style="postgres"
-  else
-    style="$use"
-  fi 
-  case "$style" in
+  case "$eng" in
     mysql) # Mysql
-      loginfo "use $1;\n$2 | $server"
-      echo "use $1;\n$2" | $server
+      if [ "$1" = "" ]; then
+        loginfo "echo \"$2\" | $server"
+        echo "$2" | $server
+      else 
+        loginfo "echo \"use $1;\n$2\" | $server"
+        echo "use $1;\n$2" | $server
+      fi
     ;;
     *) # Postgres style:
-      loginfo "$2 | $server $1"
+      loginfo "echo \"$2\" | $server $1"
       echo "$2" | $server $1
     ;; 
   esac
@@ -91,6 +113,7 @@ function dodbsql() {
 
 case "$cmd" in
   usql) dodbsql "" "$usql";;
+  locks) dodbsql "" "$locksql";;
   sql) 
      for db in $dbs; do
         dodbsql "$db" "$sql"

@@ -13,6 +13,19 @@ test:		# Test all unit tests in the project using verbose and coverage mode.
 sqlc:		# Generate sqlc CRUD code using sqlc.yaml
 	sqlc generate
 
+#	showsql -psql sql "select now()"
+#	showsql -psql sql "select * from accounts order by id desc limit 10" 
+#	showsql -psql sql "select * from entries order by id desc limit 10" 
+#	showsql -psql sql "select * from transfers order by id desc limit 10" 
+
+txns:		# Run SQL for the txn update checks 
+	showsql -v -psql sql "select a.id, a.owner as donor, a.balance as abal, \
+	  b.owner as recipient, b.balance as bbal, t.created_at as txtime,  t.amount \
+	 from transfers t \
+	inner join accounts a on t.from_account_id = a.id \
+	inner join accounts b on t.to_account_id = b.id \
+	order by t.created_at desc limit 10"
+
 pgstuff:# Below are the postgres start stoop options
 	@echo See the status-pg, start-pg, stop-pg targets and the postgres.sh script.
 
