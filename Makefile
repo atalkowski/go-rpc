@@ -13,6 +13,8 @@ test:		# Test all unit tests in the project using verbose and coverage mode.
 sqlc:		# Generate sqlc CRUD code using sqlc.yaml
 	sqlc generate
 
+server:	# Start the main api server
+
 #	showsql -psql sql "select now()"
 #	showsql -psql sql "select * from accounts order by id desc limit 10" 
 #	showsql -psql sql "select * from entries order by id desc limit 10" 
@@ -95,6 +97,9 @@ d6:		# Install Postgres go library the at lib/pq
 d7:		# Install stretchr/testify
 	go get github.com/stretchr/testify
 	go get github.com/stretchr/testify/require
+
+d8:		#Install golang gin
+	go get -u github.com/gin-gonic/gin
 
 d5b:		# Install the docker version of the sqlc code generator
 	docker pull kjconroy/sqlc

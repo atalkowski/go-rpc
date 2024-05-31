@@ -1,28 +1,37 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"atalkowski/go-rpc/api"
+	"database/sql"
+	"log"
+	"testing"
 
-	"github.com/atalkowski/go-rpc/myutils"
+	// db "github.com/atalkowski/go-rpc/db/sqlc"
+
+	db "github.com/atalkowski/go-rpc/db/sqlc"
+	_ "github.com/lib/pq"
 )
 
-func testTimers() {
-	fmt.Println("Hello World")
-	timer := myutils.NewPhaseTimer()
-	timer.Log("Init-A")
-	timer.LogN(1, "Init-B")
-	time.Sleep(50 * time.Millisecond)
-	timer.Log("Part1-A")
-	time.Sleep(30 * time.Millisecond)
-	timer.Log("Last-A")
-	timer.LogN(1, "Last-B")
-	time.Sleep(170 * time.Millisecond)
-	timer.AllDone()
-	fmt.Printf("testTimers completed:\n%v\n", timer.ToString())
+// Above ^^^ lib/pq functions not called directly here so a save will remove it; use _ to prevent this.
 
-}
+const (
+	dbDriver      = "postgres"
+	dbSource      = "postgresql://root:mysecret@localhost:5432/simple_bank?sslmode=disable"
+	serverAddress = "0.0.0.0:9090"
+)
 
-func main() {
-	testTimers()
+func TestMain(m *testing.M) {
+	conn, err := sql.Open(dbDriver, dbSource)
+	if err != nil {
+		log.Fatal("Cannot connect to db:", err)
+	}
+
+	store := db.NewStore(conn)
+	server := api.NewServer(store)
+
+	err = server.Start(serverAddress)
+	if err != nil {
+		log.Fatal("Cannot start server:", err)
+	}
+
 }
