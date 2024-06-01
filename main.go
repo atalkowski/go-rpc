@@ -1,13 +1,10 @@
 package main
 
 import (
-	"atalkowski/go-rpc/api"
 	"database/sql"
 	"log"
-	"testing"
 
-	// db "github.com/atalkowski/go-rpc/db/sqlc"
-
+	api "github.com/atalkowski/go-rpc/api"
 	db "github.com/atalkowski/go-rpc/db/sqlc"
 	_ "github.com/lib/pq"
 )
@@ -20,7 +17,7 @@ const (
 	serverAddress = "0.0.0.0:9090"
 )
 
-func TestMain(m *testing.M) {
+func main() {
 	conn, err := sql.Open(dbDriver, dbSource)
 	if err != nil {
 		log.Fatal("Cannot connect to db:", err)

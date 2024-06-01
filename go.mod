@@ -2,7 +2,9 @@ module atalkowski/go-rpc
 
 go 1.22.3
 
-// replace github.com/atalkowski/go-rpc => ./
+replace github.com/atalkowski/go-rpc v0.0.0-00010101000000-000000000000 => ./
+
+replace atalkowski/go-rpc => ./
 
 require (
 	github.com/atalkowski/go-rpc v0.0.0-00010101000000-000000000000

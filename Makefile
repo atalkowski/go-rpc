@@ -4,7 +4,7 @@ dft:		# List the targets in this makefile by invoking make
 	@echo The default make is to show the targets made by this Makefile and not actually do anything 
 	@cat Makefile | grep '^[a-zA-Z0-9_-]*:'
 
-run:	# Build the main.go and run it
+run:	# Build the main.go and run it (same as server)
 	go run main.go
 
 test:		# Test all unit tests in the project using verbose and coverage mode.
@@ -13,7 +13,8 @@ test:		# Test all unit tests in the project using verbose and coverage mode.
 sqlc:		# Generate sqlc CRUD code using sqlc.yaml
 	sqlc generate
 
-server:	# Start the main api server
+server:	# Start the main api server (same as run)
+	go run main.go
 
 #	showsql -psql sql "select now()"
 #	showsql -psql sql "select * from accounts order by id desc limit 10" 

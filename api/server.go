@@ -1,8 +1,7 @@
 package api
 
 import (
-	db "atalkowski/go-rpc/db/sqlc"
-
+	db "github.com/atalkowski/go-rpc/db/sqlc"
 	"github.com/gin-gonic/gin"
 )
 
