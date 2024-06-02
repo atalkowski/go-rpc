@@ -107,7 +107,17 @@ d5b:		# Install the docker version of the sqlc code generator
 	@echo "To run the docker version:"
 	@echo "docker run --rm -v $(pwd):/src -w /src kjconroy/sqlc generate"	
 
+api-create:	# Create a test random account using the API
+	callapi.sh create
 
+api-delete:	# Call the delete API for ID env value
+	callapi.sh delete $(ID)
+
+api-list: # Call the list API for page_size and page_id defaults (or passed ARGS="-page_size X -page_id Y")
+	callapi.sh list $(ARGS)
+
+api-get:	# Call the get API for env ID value
+	callapi.sh get $(ID)
 
 #q-accounts:	# Init the query/accounts.sql needed the sqlc generation of the accounts CRUD Golang code
 #	initc.sh Account Accounts -table accounts -fields 'owner, balance, currency' -values '$1, $2, $3' \
