@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package pb;
+
+import "rpc_create_user.proto";
+
+option go_package = "github.com/atalkowski/go-rpc/pb";
+option java_package = "bonfonte/go/simplebank/pb";
+
+service SimpleBank {
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {}
+}

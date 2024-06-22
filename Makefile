@@ -70,8 +70,13 @@ connect:	# Connect to the postgres if it is running.
 	@echo Connecting to docker postgres ... use backslash q to quit when done...
 	docker exec -it postgres psql
 
+proto1:		# Generate the gRPC code for the protobuf definitions.
+	protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
+	       --go-grpc_out=pb  --go-grpc_opt=paths=source_relative  proto/*.proto 
+
 downloads: # The following are the list of installs and downloads.
 	@echo These are the d1 d2 d3.... d7 etc
+
 
 d1:		# Pull the postgres image from docker.
 	./checkit.sh "docker pull postgres:16.2-alpine3.19" "Pull docker image for postgres"
@@ -102,6 +107,12 @@ d7:		# Install stretchr/testify
 d8:		#Install golang gin
 	go get -u github.com/gin-gonic/gin
 
+d9:		# Install go viper for handling config
+
+d10:	# Install go protoc and protoc-gen-go and protoc-gen-go-rpc
+	brew install protoc-gen-go
+	brew install protoc-gen-go-grpc
+	
 d5b:		# Install the docker version of the sqlc code generator
 	docker pull kjconroy/sqlc
 	@echo "To run the docker version:"
