@@ -70,6 +70,11 @@ connect:	# Connect to the postgres if it is running.
 	@echo Connecting to docker postgres ... use backslash q to quit when done...
 	docker exec -it postgres psql
 
+validate:# Generate the gRPC code for the protobuf definitions.
+	mkdir -p generated/go generated/valid
+	rm -rf pb/*.go generated/go/*.go generated/valid/*.go
+	protoc -I proto --go_out=":generated/go" --validate_out="lang=go:generated/valid" proto/*.proto
+
 gogo:		# Generate the gRPC code for the protobuf definitions.
 	rm -rf pb/*.go
 	protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
