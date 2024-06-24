@@ -5,8 +5,9 @@ package pb;
 import "user.proto";
 
 option go_package = "github.com/atalkowski/go-rpc/pb";
-option java_package = "bonfonte/go/simplebank/pb";
+// option java_package = "com.bonfonte.proto";
 
+/*
 message CreateUserRequest {
   string username = 1;
   string fullname = 2;
@@ -16,4 +17,14 @@ message CreateUserRequest {
 
 message CreateUserResponse {
   User user = 1;
+}
+*/
+
+message CreateAccountRequest {
+  string owner = 1;
+  string currency = 2;
+}
+
+message CreateAccountResponse {
+  Account account = 1;
 }

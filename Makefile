@@ -4,7 +4,7 @@ dft:		# List the targets in this makefile by invoking make
 	@echo The default make is to show the targets made by this Makefile and not actually do anything 
 	@cat Makefile | grep '^[a-zA-Z0-9_-]*:'
 
-run:	# Build the main.go and run it (same as server)
+run:		# Build the main.go and run it (same as server)
 	go run main.go
 
 test:		# Test all unit tests in the project using verbose and coverage mode.
@@ -13,7 +13,7 @@ test:		# Test all unit tests in the project using verbose and coverage mode.
 sqlc:		# Generate sqlc CRUD code using sqlc.yaml
 	sqlc generate
 
-server:	# Start the main api server (same as run)
+server:		# Start the main api server (same as run)
 	go run main.go
 
 #	showsql -psql sql "select now()"
@@ -29,10 +29,10 @@ txns:		# Run SQL for the txn update checks
 	inner join accounts b on t.to_account_id = b.id \
 	order by t.created_at desc limit 10"
 
-pgstuff:# Below are the postgres start stoop options
+pgstuff:	# Below are the postgres start stoop options
 	@echo See the status-pg, start-pg, stop-pg targets and the postgres.sh script.
 
-docker:	# Launch the docker desktop application
+docker:		# Launch the docker desktop application
 	open -a Docker
 	@echo Please wait while Docker Desktop loads ...
 
@@ -70,9 +70,24 @@ connect:	# Connect to the postgres if it is running.
 	@echo Connecting to docker postgres ... use backslash q to quit when done...
 	docker exec -it postgres psql
 
-proto1:		# Generate the gRPC code for the protobuf definitions.
+gogo:		# Generate the gRPC code for the protobuf definitions.
+	rm -rf pb/*.go
 	protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
 	       --go-grpc_out=pb  --go-grpc_opt=paths=source_relative  proto/*.proto 
+
+go-java:	# Generate the equivalent jave versions from the protobuf definitions
+	rm -rf generated/*.java
+	protoc --java_out=generated proto/*.proto 
+
+evans:		# Load the evans gRPC client
+	@echo "Use these commands in evans gRPC client:\n\
+		show package\n\
+		package pb\n\
+		show service\n\
+		call RPCProcedure (as listed etc)\n\
+		exit (to exit)"
+	evans --host localhost --port 9090 -r repl
+
 
 downloads: # The following are the list of installs and downloads.
 	@echo These are the d1 d2 d3.... d7 etc
@@ -109,9 +124,20 @@ d8:		#Install golang gin
 
 d9:		# Install go viper for handling config
 
-d10:	# Install go protoc and protoc-gen-go and protoc-gen-go-rpc
-	brew install protoc-gen-go
-	brew install protoc-gen-go-grpc
+d10:		# Install latest protobuf, protoc-gen-go and protoc-get-go-grpc
+	@echo brew install protobuf
+	@echo brew install protoc-gen-go
+	@echo brew install protoc-gen-go-grpc
+
+d11:		# Install the protobuf, protoc-gen-go and protoc-get-go-grpc
+	brew install protobuf@3
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+	
+
+d13:		# Install evans gRPC client
+	brew tap ktr0731/evans
+	brew install evans
 	
 d5b:		# Install the docker version of the sqlc code generator
 	docker pull kjconroy/sqlc
@@ -124,10 +150,10 @@ api-create:	# Create a test random account using the API
 api-delete:	# Call the delete API for ID env value
 	callapi.sh delete $(ID)
 
-api-list: # Call the list API for page_size and page_id defaults (or passed ARGS="-page_size X -page_id Y")
+api-list: 	# Call the list API for page_size and page_id defaults (or passed ARGS="-page_size X -page_id Y")
 	callapi.sh list $(ARGS)
 
-api-get:	# Call the get API for env ID value
+api-get:	# Call the get API for env ID value (i.e. make api-get ID=12345)
 	callapi.sh get $(ID)
 
 #q-accounts:	# Init the query/accounts.sql needed the sqlc generation of the accounts CRUD Golang code
