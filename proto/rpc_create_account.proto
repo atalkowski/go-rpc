@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package pb;
+
+import "account.proto";
+
+option go_package = "github.com/atalkowski/go-rpc/pb";
+
+message CreateAccountRequest {
+  string owner = 1;
+  string currency = 2;
+}
+
+message CreateAccountResponse {
+  Account account = 1;
+}

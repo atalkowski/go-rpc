@@ -35,5 +35,7 @@ func (server *Server) CreateAccount(ctx context.Context, req *pb.CreateAccountRe
 	response := &pb.CreateAccountResponse{
 		Account: convertAccount(account),
 	}
+	log.Printf("RPC Created Account ID: %v %s %s", response.Account.GetId(),
+		response.Account.GetOwner(), response.Account.GetCurrency())
 	return response, nil
 }

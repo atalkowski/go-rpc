@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package pb;
 
-import "rpc_create_user.proto";
+import "rpc_create_account.proto";
 
 option go_package = "github.com/atalkowski/go-rpc/pb";
 // option java_package = "com.bonfonte.proto";
